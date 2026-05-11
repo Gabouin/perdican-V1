@@ -1,4 +1,4 @@
-# Contributing to APX USB HUB
+# Contributing to PERDICAN V1
 
 Thanks for your interest in contributing! This is a hardware project, so contributions can include electronics, PCB layout, mechanical design, documentation, and manufacturing improvements.
 
