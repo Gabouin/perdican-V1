@@ -127,7 +127,7 @@ Source: `production/pcb/bom.csv`
   <table>
     <tr>
       <td valign="bottom"><img width=100% alt="LCSC parts" src="https://github.com/user-attachments/assets/6eb0794d-3a94-4090-a543-54a521d70667" /></td>
-      <td valign="bottom"><img width=100% alt="JLCPCB order" src="https://github.com/user-attachments/assets/90fd7e54-4ab0-4ed8-ad2e-913640c25e75" /></td>
+      <td valign="bottom"><img width=85% alt="JLCPCB order" src="https://github.com/user-attachments/assets/90fd7e54-4ab0-4ed8-ad2e-913640c25e75" /></td>
   </table>
 </div>  
 
