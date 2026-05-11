@@ -24,6 +24,7 @@ Thanks for your interest in contributing! This is a hardware project, so contrib
 
 ### CAD
 - Making a 3D printable enclosure for the devboard
+- Making a better render in blender with lights (LEDs)
 
 ### Documentation
 - Fixing typos, improving clarity in README and add build steps with stencil.
