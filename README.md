@@ -57,10 +57,10 @@ A STM32 based devboard with an integrated IMU and 14 GPIO pins.
 
 ## Repository Structure
 
-- `src/kicad/` — KiCad project sources
-- `src/kicad/cad/` — full 3d model
-- `production/` — PCB fabrication files (Gerbers, BOM, Pick & Place)
-- `images/` — images used in the README and documentation
+- `src/kicad/` - KiCad project sources
+- `src/kicad/cad/` - full 3d model
+- `production/` - PCB fabrication files (Gerbers, BOM, Pick & Place)
+- `images/` - images used in the README and documentation
 
 ## Schematic on KiCad
 
@@ -146,7 +146,7 @@ Contributions, improvements, and remixes are welcome! Please read the [CONTRIBUT
 
 ## License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
 
 ## Credits
