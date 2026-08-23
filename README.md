@@ -35,7 +35,7 @@ A STM32 based devboard with an integrated IMU and 14 GPIO pins.
 <p align=center>
 <img width=70% alt="gif render" src="images/perdican-renders-animate2-2-4.gif" />
 <img width=70% alt="image" src="https://github.com/user-attachments/assets/2972ea26-00a6-4626-b22f-64dd901bf482" />
-<img width=70% alt="render banner" src="images/banner-render.png>
+<img width=70% alt="render banner" src="images/banner-render.png" />
 
 </p>
 
