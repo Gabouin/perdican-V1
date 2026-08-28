@@ -1,10 +1,3 @@
-/*
- * startup.c — vector table, reset entry and default fault handlers.
- *
- * Written in C rather than assembly so the vector table stays readable and
- * the DFU-magic check can run before anything else touches RAM.
- */
-
 #include "stm32g431xx.h"
 #include <stdint.h>
 #include <string.h>
@@ -15,12 +8,10 @@ extern int  main(void);
 void Reset_Handler(void);
 void Default_Handler(void);
 
-/* Defined in dfu.c — checked before RAM init so the magic word survives. */
 extern void dfu_check_reboot_magic(void);
 
 #define ALIAS(f) __attribute__((weak, alias(#f)))
 
-/* Cortex-M4 core exceptions */
 void NMI_Handler(void)              ALIAS(Default_Handler);
 void HardFault_Handler(void)        ALIAS(Default_Handler);
 void MemManage_Handler(void)        ALIAS(Default_Handler);
@@ -31,8 +22,6 @@ void DebugMon_Handler(void)         ALIAS(Default_Handler);
 void PendSV_Handler(void)           ALIAS(Default_Handler);
 void SysTick_Handler(void)          ALIAS(Default_Handler);
 
-/* STM32G431 peripheral interrupts (only the ones this board can reach are
- * ever enabled, but the table must be complete and correctly ordered). */
 void WWDG_IRQHandler(void)                      ALIAS(Default_Handler);
 void PVD_PVM_IRQHandler(void)                   ALIAS(Default_Handler);
 void RTC_TAMP_LSECSS_IRQHandler(void)           ALIAS(Default_Handler);
@@ -133,7 +122,7 @@ void DMA2_Channel6_IRQHandler(void)             ALIAS(Default_Handler);
 void DMA2_Channel7_IRQHandler(void)             ALIAS(Default_Handler);
 void DMA2_Channel8_IRQHandler(void)             ALIAS(Default_Handler);
 void CORDIC_IRQHandler(void)                    ALIAS(Default_Handler);
-void FMAC_IRQHandler(void)                      ALIAS(Default_Handler);
+void FMAC_IRQHandler(void)                       ALIAS(Default_Handler);
 
 typedef void (*vector_t)(void);
 
@@ -153,14 +142,14 @@ const vector_t g_vectors[] = {
     PendSV_Handler,
     SysTick_Handler,
 
-    WWDG_IRQHandler,                    /*  0 */
+    WWDG_IRQHandler,
     PVD_PVM_IRQHandler,
     RTC_TAMP_LSECSS_IRQHandler,
     RTC_WKUP_IRQHandler,
     FLASH_IRQHandler,
     RCC_IRQHandler,
-    EXTI0_IRQHandler,                   /*  6 — IMU INT1 (PA0) */
-    EXTI1_IRQHandler,                   /*  7 — IMU INT2 (PA1) */
+    EXTI0_IRQHandler,
+    EXTI1_IRQHandler,
     EXTI2_IRQHandler,
     EXTI3_IRQHandler,
     EXTI4_IRQHandler,
@@ -172,8 +161,8 @@ const vector_t g_vectors[] = {
     DMA1_Channel6_IRQHandler,
     DMA1_Channel7_IRQHandler,
     ADC1_2_IRQHandler,
-    USB_HP_IRQHandler,                  /* 19 */
-    USB_LP_IRQHandler,                  /* 20 — USB CDC */
+    USB_HP_IRQHandler,
+    USB_LP_IRQHandler,
     FDCAN1_IT0_IRQHandler,
     FDCAN1_IT1_IRQHandler,
     EXTI9_5_IRQHandler,
@@ -184,7 +173,7 @@ const vector_t g_vectors[] = {
     TIM2_IRQHandler,
     TIM3_IRQHandler,
     TIM4_IRQHandler,
-    I2C1_EV_IRQHandler,                 /* 31 */
+    I2C1_EV_IRQHandler,
     I2C1_ER_IRQHandler,
     I2C2_EV_IRQHandler,
     I2C2_ER_IRQHandler,
@@ -195,7 +184,7 @@ const vector_t g_vectors[] = {
     USART3_IRQHandler,
     EXTI15_10_IRQHandler,
     RTC_Alarm_IRQHandler,
-    USBWakeUp_IRQHandler,               /* 42 */
+    USBWakeUp_IRQHandler,
     TIM8_BRK_IRQHandler,
     TIM8_UP_IRQHandler,
     TIM8_TRG_COM_IRQHandler,
@@ -228,7 +217,7 @@ const vector_t g_vectors[] = {
     HRTIM1_TIME_IRQHandler,
     HRTIM1_FLT_IRQHandler,
     HRTIM1_TIMF_IRQHandler,
-    CRS_IRQHandler,                     /* 75 */
+    CRS_IRQHandler,
     SAI1_IRQHandler,
     TIM20_BRK_IRQHandler,
     TIM20_UP_IRQHandler,
@@ -259,27 +248,18 @@ const vector_t g_vectors[] = {
 
 void __attribute__((noreturn)) Reset_Handler(void)
 {
-    /*
-     * Runs before .data/.bss init on purpose: the reboot magic lives in
-     * .noinit, and jumping to the ST bootloader must happen while the chip
-     * is still in its reset state.
-     */
     dfu_check_reboot_magic();
 
-    /* Copy initialised data from flash to RAM. */
     uint32_t *src = &_sidata;
     for (uint32_t *dst = &_sdata; dst < &_edata; )
         *dst++ = *src++;
 
-    /* Zero .bss (.noinit is deliberately skipped — see the linker script). */
     for (uint32_t *dst = &_sbss; dst < &_ebss; )
         *dst++ = 0;
 
-    /* Cortex-M4F: enable CP10/CP11 before any float code runs. */
     SCB->CPACR |= (3UL << 20) | (3UL << 22);
     __asm volatile ("dsb; isb");
 
-    /* Run C++ / __attribute__((constructor)) initialisers, if any. */
     extern void (*__init_array_start[])(void);
     extern void (*__init_array_end[])(void);
     for (void (**fn)(void) = __init_array_start; fn < __init_array_end; fn++)
@@ -291,11 +271,6 @@ void __attribute__((noreturn)) Reset_Handler(void)
         __asm volatile ("wfi");
 }
 
-/*
- * Any unhandled exception parks here. The LED is driven directly (no board
- * layer, which may not be initialised) so a fault is visible as a fast
- * blink even if the fault happened during early init.
- */
 void Default_Handler(void)
 {
     RCC->AHB2ENR |= RCC_AHB2ENR_GPIOAEN;

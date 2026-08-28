@@ -1,10 +1,3 @@
-/*
- * gpio.h — thin, inlineable GPIO helpers over the STM32G4 register file.
- *
- * Deliberately not a HAL: every function is a couple of register writes so
- * it can be used from an interrupt or a tight loop without surprise.
- */
-
 #ifndef PERDICAN_GPIO_H
 #define PERDICAN_GPIO_H
 
@@ -33,8 +26,8 @@ typedef enum {
 } gpio_speed_t;
 
 typedef enum {
-    GPIO_PP = 0u,   /* push-pull  */
-    GPIO_OD = 1u,   /* open-drain */
+    GPIO_PP = 0u,
+    GPIO_OD = 1u,
 } gpio_otype_t;
 
 static inline void gpio_set_mode(GPIO_TypeDef *p, uint8_t pin, gpio_mode_t m)
@@ -62,12 +55,11 @@ static inline void gpio_set_otype(GPIO_TypeDef *p, uint8_t pin, gpio_otype_t t)
 
 static inline void gpio_set_af(GPIO_TypeDef *p, uint8_t pin, uint8_t af)
 {
-    const uint8_t idx = pin >> 3u;              /* AFR[0] = pins 0-7 */
+    const uint8_t idx = pin >> 3u;
     const uint8_t sh  = (pin & 7u) * 4u;
     p->AFR[idx] = (p->AFR[idx] & ~(0xFu << sh)) | ((uint32_t)af << sh);
 }
 
-/* Atomic, read-modify-write free. */
 static inline void gpio_write(GPIO_TypeDef *p, uint8_t pin, bool high)
 {
     p->BSRR = high ? (1u << pin) : (1u << (pin + 16u));
@@ -78,8 +70,6 @@ static inline void gpio_low(GPIO_TypeDef *p, uint8_t pin)   { p->BSRR = 1u << (p
 
 static inline void gpio_toggle(GPIO_TypeDef *p, uint8_t pin)
 {
-    /* BSRR-based toggle: set and reset bits are mutually exclusive, so pick
-     * the one matching the current output level. */
     p->BSRR = (p->ODR & (1u << pin)) ? (1u << (pin + 16u)) : (1u << pin);
 }
 
@@ -93,7 +83,6 @@ static inline bool gpio_read_output(GPIO_TypeDef *p, uint8_t pin)
     return (p->ODR & (1u << pin)) != 0u;
 }
 
-/* Convenience configurators. */
 static inline void gpio_config_output(GPIO_TypeDef *p, uint8_t pin,
                                       gpio_otype_t t, gpio_speed_t s)
 {
@@ -125,4 +114,4 @@ static inline void gpio_config_analog(GPIO_TypeDef *p, uint8_t pin)
     gpio_set_mode(p, pin, GPIO_MODE_ANALOG);
 }
 
-#endif /* PERDICAN_GPIO_H */
+#endif

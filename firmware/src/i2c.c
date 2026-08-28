@@ -1,31 +1,3 @@
-/*
- * i2c.c — blocking I2C1 master.
- *
- * Timing note
- * -----------
- * I2C1 is clocked from HSI16 (see clock_init_periph), so TIMINGR describes
- * a fixed 16 MHz input and stays valid regardless of SYSCLK. The values
- * below are derived from the RM0440 timing formulas rather than copied from
- * a generator, so the margins are explicit:
- *
- *   t_I2CCLK = 62.5 ns, PRESC = 0 (no prescale)
- *
- *   400 kHz (Fast mode)          required        chosen
- *     t_SCLL  = (21+1)*62.5 ns   >= 1300 ns      1375 ns
- *     t_SCLH  = (15+1)*62.5 ns   >=  600 ns      1000 ns
- *     t_SDADEL=  2   *62.5 ns    hold  > 0        125 ns
- *     t_SCLDEL= (6+1)*62.5 ns    >= t_r+t_SU     437 ns
- *     period ~= 1375+1000+t_r+t_f ~= 2.54 us  ->  ~394 kHz
- *
- *   100 kHz (Standard mode)      required        chosen
- *     t_SCLL  = (76+1)*62.5 ns   >= 4700 ns      4812 ns
- *     t_SCLH  = (63+1)*62.5 ns   >= 4000 ns      4000 ns
- *     t_SCLDEL= (19+1)*62.5 ns   >= t_r+t_SU    1250 ns
- *
- * The board fits 4.7k pull-ups (R6/R7) on a very short run, so the real
- * rise time is well inside the worst case assumed above.
- */
-
 #include "board.h"
 #include "i2c.h"
 #include "gpio.h"
@@ -35,10 +7,9 @@
     (((uint32_t)(presc)  << 28) | ((uint32_t)(scldel) << 20) | \
      ((uint32_t)(sdadel) << 16) | ((uint32_t)(sclh)   <<  8) | (uint32_t)(scll))
 
-#define I2C_TIMING_400K  TIMINGR_FIELDS(0u,  6u, 2u, 15u, 21u)   /* 0x00620F15 */
-#define I2C_TIMING_100K  TIMINGR_FIELDS(0u, 19u, 2u, 63u, 76u)   /* 0x01323F4C */
+#define I2C_TIMING_400K  TIMINGR_FIELDS(0u,  6u, 2u, 15u, 21u)
+#define I2C_TIMING_100K  TIMINGR_FIELDS(0u, 19u, 2u, 63u, 76u)
 
-/* Generous: a stretched clock on a slow slave is legitimate. */
 #define I2C_TIMEOUT_US   25000u
 
 static i2c_status_t wait_flag(uint32_t mask, bool want_set)
@@ -66,11 +37,6 @@ static i2c_status_t wait_flag(uint32_t mask, bool want_set)
 
 void i2c_bus_recover(void)
 {
-    /*
-     * If the MCU was reset mid-read, the IMU may still be driving SDA low
-     * waiting to finish a byte. Clocking SCL up to 9 times lets it complete
-     * the transfer and release the line; a manual STOP then resyncs it.
-     */
     RCC->AHB2ENR |= RCC_AHB2ENR_GPIOBEN;
     (void)RCC->AHB2ENR;
 
@@ -88,7 +54,6 @@ void i2c_bus_recover(void)
         delay_us(5);
     }
 
-    /* STOP: SDA rises while SCL is high. */
     gpio_low(IMU_SDA_PORT, IMU_SDA_PIN);
     delay_us(5);
     gpio_high(IMU_SCL_PORT, IMU_SCL_PIN);
@@ -102,24 +67,20 @@ void i2c_init(i2c_speed_t speed)
     RCC->APB1ENR1 |= RCC_APB1ENR1_I2C1EN;
     (void)RCC->APB1ENR1;
 
-    /* Reset the peripheral so a re-init cannot inherit a stuck state. */
     RCC->APB1RSTR1 |=  RCC_APB1RSTR1_I2C1RST;
     RCC->APB1RSTR1 &= ~RCC_APB1RSTR1_I2C1RST;
 
-    /* Open-drain with the internal pull-up enabled as a weak assist; the
-     * real pull-ups are R6/R7 (4.7k). */
     gpio_config_af(IMU_SCL_PORT, IMU_SCL_PIN, IMU_SCL_AF,
                    GPIO_OD, GPIO_PULL_UP, GPIO_SPEED_VERYHIGH);
     gpio_config_af(IMU_SDA_PORT, IMU_SDA_PIN, IMU_SDA_AF,
                    GPIO_OD, GPIO_PULL_UP, GPIO_SPEED_VERYHIGH);
 
-    I2C1->CR1     = 0;                  /* PE = 0 while configuring */
+    I2C1->CR1     = 0;
     I2C1->TIMINGR = (speed == I2C_SPEED_400K) ? I2C_TIMING_400K : I2C_TIMING_100K;
     I2C1->CR2     = 0;
-    I2C1->CR1     = I2C_CR1_PE;         /* analog filter on, digital filter 0 */
+    I2C1->CR1     = I2C_CR1_PE;
 }
 
-/* Programs CR2 and launches a transfer. */
 static void start_transfer(uint8_t addr7, uint16_t len, bool read, bool autoend)
 {
     uint32_t cr2 = ((uint32_t)(addr7 << 1) & I2C_CR2_SADD)
@@ -207,7 +168,6 @@ i2c_status_t i2c_read_regs(uint8_t addr7, uint8_t reg, uint8_t *data, uint16_t l
     if (st != I2C_OK)
         return st;
 
-    /* Phase 1: write the register pointer, SOFTEND so we keep the bus. */
     start_transfer(addr7, 1u, false, false);
 
     st = wait_flag(I2C_ISR_TXIS, true);
@@ -219,7 +179,6 @@ i2c_status_t i2c_read_regs(uint8_t addr7, uint8_t reg, uint8_t *data, uint16_t l
     if (st != I2C_OK)
         goto out;
 
-    /* Phase 2: repeated START into the read. */
     start_transfer(addr7, len, true, true);
 
     for (uint16_t i = 0; i < len; i++) {
@@ -276,8 +235,6 @@ i2c_status_t i2c_write_reg(uint8_t addr7, uint8_t reg, uint8_t value)
 
 bool i2c_probe(uint8_t addr7)
 {
-    /* A zero-length write is an address phase followed by STOP: exactly the
-     * "does anyone ACK this address" question, with no side effects. */
     return i2c_write(addr7, 0, 0) == I2C_OK;
 }
 

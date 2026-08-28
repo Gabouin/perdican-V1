@@ -1,4 +1,4 @@
-# PERDICAN V1 — Firmware
+# PERDICAN V1 Firmware
 
 Bare-metal firmware for the [PERDICAN V1](https://github.com/Gabouin/perdican-V1)
 devboard: **STM32G431CBT6** + **LSM6DS3TR-C** IMU, with a USB CDC console on
@@ -20,8 +20,8 @@ so the pin map is exactly what the copper does.
 
 ## What it does
 
-- Brings SYSCLK to **170 MHz** from the internal HSI16 — the board has no
-  crystal, so everything runs off internal oscillators.
+- Brings SYSCLK to **170 MHz** from the internal HSI16, since the board has
+  no crystal, so everything runs off internal oscillators.
 - Runs USB from **HSI48 + CRS**, trimmed against the host's start-of-frame.
   This is what lets a crystal-less board do USB at all.
 - Talks to the **LSM6DS3TR-C** over I2C1 at 400 kHz: accelerometer,
@@ -43,7 +43,7 @@ brew install dfu-util                   # for debugger-free flashing
 make                                    # builds build/perdican.{elf,bin,hex}
 ```
 
-Flash it — **hold BOOT, tap RESET, release BOOT**, then:
+Flash it: **hold BOOT, tap RESET, release BOOT**, then:
 
 ```sh
 make dfu
@@ -126,7 +126,7 @@ unconnected and are listed as such.
 The IMU is strapped for **I2C** (CS tied to 3V3) with **SA0 grounded**, so
 its 7-bit address is **0x6A**.
 
-### Expansion headers — 14 GPIO
+### Expansion headers (14 GPIO)
 
 ```
       J1 (left)                     J2 (right)
@@ -153,7 +153,7 @@ mode, which is ST's recommended lowest-leakage state for unused I/O.
 
 ## Two hardware notes
 
-**VBAT is not tied to VDD.** Pad 1 has only C10 (100 nF) to +3V3 — it is
+**VBAT is not tied to VDD.** Pad 1 has only C10 (100 nF) to +3V3, so it is
 AC-coupled and DC-floating. ST requires VBAT be strapped to VDD when no
 backup cell is fitted, so the backup domain on this board is out of spec.
 **Do not use the RTC, LSE or TAMP backup registers.** This firmware keeps its

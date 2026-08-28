@@ -1,11 +1,3 @@
-/*
- * console.c — line-oriented command shell on the USB CDC port.
- *
- * Non-blocking by construction: console_poll() consumes whatever bytes have
- * arrived and returns. The only command that runs long is `imu stream`, and
- * that checks for an incoming keypress on every iteration.
- */
-
 #include "board.h"
 #include "console.h"
 #include "usb_cdc.h"
@@ -52,10 +44,6 @@ void console_banner(void)
     cdc_puts(" type 'help' for commands\r\n\r\n");
     cdc_flush();
 }
-
-/* ------------------------------------------------------------------------ */
-/* Commands                                                                  */
-/* ------------------------------------------------------------------------ */
 
 static void cmd_help(void)
 {
@@ -253,10 +241,6 @@ static void cmd_gpio(int argc, char **argv)
         return;
     }
 
-    /*
-     * PA13/PA14 are the SWD lines as well as J2-3/J2-4. Reconfiguring them
-     * silently kills any attached debugger, so require an explicit "force".
-     */
     const bool is_swd  = board_pin_is_swd(g->port, g->pin);
     const bool forced  = (argc >= 4 && strcasecmp(argv[argc - 1], "force") == 0)
                       || (argc >= 5 && strcasecmp(argv[argc - 1], "force") == 0);
@@ -324,10 +308,6 @@ static void cmd_led(int argc, char **argv)
     printf("led is %s\r\n", led_get() ? "on" : "off");
 }
 
-/* ------------------------------------------------------------------------ */
-/* Dispatch                                                                  */
-/* ------------------------------------------------------------------------ */
-
 static void run(char *line)
 {
     char *argv[ARG_MAX];
@@ -392,8 +372,6 @@ void console_init(void)
 void console_poll(void)
 {
     if (!cdc_is_connected()) {
-        /* Terminal closed: forget any half-typed line and re-prompt on
-         * the next connection. */
         s_len = 0;
         s_prompt_pending = true;
         return;
@@ -416,7 +394,7 @@ void console_poll(void)
             continue;
         }
 
-        if (c == 0x08 || c == 0x7F) {           /* backspace / delete */
+        if (c == 0x08 || c == 0x7F) {
             if (s_len) {
                 s_len--;
                 cdc_puts("\b \b");
@@ -424,20 +402,20 @@ void console_poll(void)
             continue;
         }
 
-        if (c == 0x03) {                        /* Ctrl-C */
+        if (c == 0x03) {
             cdc_puts("^C\r\n");
             s_len = 0;
             prompt();
             continue;
         }
 
-        if (c < 0x20 || c > 0x7E)               /* ignore other control bytes */
+        if (c < 0x20 || c > 0x7E)
             continue;
 
         if (s_len < LINE_MAX - 1u) {
             const char ch = (char)c;
             s_line[s_len++] = ch;
-            cdc_write(&ch, 1u);                 /* local echo */
+            cdc_write(&ch, 1u);
         }
     }
 

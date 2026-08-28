@@ -1,19 +1,3 @@
-/*
- * main.c — PERDICAN V1 firmware.
- *
- * On boot the board checks that the IMU is present and answering, brings up
- * the USB CDC console, and then loops: service the console, drive the status
- * LED, react to the user button.
- *
- * The LED is the board's only local output, so its pattern carries meaning:
- *
- *   1 Hz heartbeat        healthy, no terminal attached
- *   under your control    a terminal is attached (`led` command / button)
- *   2 short blinks        the IMU did not answer on I2C1
- *   3 short blinks        the IMU answered but WHO_AM_I was wrong
- *   fast continuous       unhandled fault (see Default_Handler in startup.c)
- */
-
 #include "board.h"
 #include "clock.h"
 #include "systick.h"
@@ -37,11 +21,6 @@ extern void retarget_init(void);
 
 static status_t bring_up_imu(void)
 {
-    /*
-     * Free the bus before configuring it. If the MCU was reset in the middle
-     * of a burst read, the IMU can still be holding SDA low, and no amount
-     * of peripheral configuration fixes that — only clock pulses do.
-     */
     i2c_bus_recover();
     i2c_init(I2C_SPEED_400K);
 
@@ -55,21 +34,11 @@ static status_t bring_up_imu(void)
     if (lsm6ds3_init(0) != I2C_OK)
         return STATUS_IMU_NO_ANSWER;
 
-    /*
-     * Make the IMU drive its two interrupt lines on data-ready. This
-     * firmware polls rather than using them, but the signals are live on
-     * PA0/PA1 so application code can attach EXTI without touching the
-     * IMU configuration.
-     */
     lsm6ds3_enable_drdy(true, true);
 
     return STATUS_OK;
 }
 
-/*
- * Non-blocking error blinker: `count` short pulses, then a long gap, driven
- * off millis() so the console stays responsive even when the IMU is dead.
- */
 static void led_error_pattern(uint8_t count)
 {
     static uint32_t next;
@@ -99,15 +68,9 @@ int main(void)
 {
     board_init();
 
-    /*
-     * Normally BOOT0 is sampled by the ROM at reset, so holding BOOT and
-     * tapping RESET never reaches this code. This catches the leftover case
-     * where BOOT is held but the ROM still handed control to us.
-     */
     if (dfu_boot_button_held())
         dfu_reboot_to_bootloader();
 
-    /* A short flash proves the LED and the 170 MHz clock before USB starts. */
     led_set(true);
     delay_ms(80);
     led_set(false);
@@ -126,8 +89,6 @@ int main(void)
     for (;;) {
         const bool connected = cdc_is_connected();
 
-        /* Greet a terminal the moment it opens the port, before the shell
-         * has a chance to print its first prompt. */
         if (connected && !banner_sent) {
             banner_sent = true;
             console_banner();
@@ -146,7 +107,7 @@ int main(void)
                 break;
             }
 
-            led_set(true);          /* solid on while a terminal is attached */
+            led_set(true);
             console_init();
         }
 
@@ -155,7 +116,6 @@ int main(void)
 
         console_poll();
 
-        /* Button toggles the LED, and says so if anyone is listening. */
         if (button_take_press()) {
             led_toggle();
             if (connected) {
@@ -165,22 +125,14 @@ int main(void)
             }
         }
 
-        /* LED, in priority order: faults first, then user control, then
-         * a heartbeat so a bare board still shows it is alive. */
         if (s_status != STATUS_OK) {
             led_error_pattern(s_status == STATUS_IMU_NO_ANSWER ? 2u : 3u);
         } else if (connected) {
-            /* Left alone on purpose: while a terminal is attached the LED
-             * belongs to the user, via the button or the `led` command. */
         } else if (millis() - heartbeat >= 1000u) {
             heartbeat = millis();
             led_toggle();
         }
 
-        /*
-         * Sleep until the next interrupt. SysTick fires every millisecond,
-         * so the loop still runs at 1 kHz even with no USB traffic.
-         */
         __asm volatile ("wfi");
     }
 }
