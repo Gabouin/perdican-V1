@@ -159,5 +159,5 @@ This project uses:
 - **JLCPCB** - PCB manufacturing
 - **LCSC** - Parts order
 - **Figma** - Silkscreen and banner design
-- **Fusion 360** - CAD render
+- **Blender** - CAD render
 - **[@NotARoomba](https://github.com/notaroomba)** - Readme template
