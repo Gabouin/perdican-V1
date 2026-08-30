@@ -96,6 +96,18 @@ Source : `src/KiCad/pcb/`
 > The PCB design is made on only 2 layers, to reduce the cost of the board !
 <br>
 
+## Build of the Board
+
+<div align="center">
+  <table>
+    <tr>
+      <td valign="center"><img width="70%" alt="perdican irl1" src="https://github.com/user-attachments/assets/cbdc1375-6d96-4350-a514-d0f6f4f5f9e7" /></td>
+      <td valign="center"><img width="100%" alt="perdican irl2" src="https://github.com/user-attachments/assets/1a7d94ad-8475-41cd-aaba-5832bb34af79" /></td>
+    </tr>
+  </table>
+</div>
+<br>
+
 ## Bill of Materials
 
 Source: `production/pcb/bom.csv`
